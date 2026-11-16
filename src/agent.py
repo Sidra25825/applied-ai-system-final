@@ -17,4 +17,6 @@ def sentence_to_profile(sentence):
     )
     text = response.text.replace("```json", "").replace("```", "").strip()
     return json.loads(text)
-print(type(sentence_to_profile("I want to listen to some music that will help me focus while I work on my project.")))
+if __name__ == "__main__":
+    print(sentence_to_profile("I want to listen to some music that will help me focus while I work on my project."))
+# print(type(sentence_to_profile("I want to listen to some music that will help me focus while I work on my project.")))
