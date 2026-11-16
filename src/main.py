@@ -29,6 +29,10 @@ def main() -> None:
     }
 
     for name, user_prefs in profiles.items():
+        # Skip profiles the agent couldn't build (sentence_to_profile returned None).
+        if user_prefs is None:
+            print(f"\nSkipped profile {name}: the agent returned no valid profile.")
+            continue
         recommendations = recommend_songs(user_prefs, songs, k=5)
 
         print(f"\n=== {name} ===")
