@@ -65,6 +65,14 @@ more than a mood match.
 2. Use more features, like valence and acousticness, and let users pick several favorite genres or moods.
 3. Add a diversity rule, so the top results don't all come from the same genre, and lower the genre weight so mood can matter more.
 
+**Future work for the agent**
+
+1. Make `mood_matches` understand similar moods, so "peaceful" and "chill" count as close. This would fix the "Unknown Genre" case, where the agent skipped the classical song.
+2. Add automated tests for the guardrail branches inside `sentence_to_profile` (missing braces, bad JSON, invalid genre, mood or energy) using a fake Gemini client. Right now I have only checked them by hand.
+3. Catch errors from the Gemini API call itself, such as no network or a bad key, so the program does not stop.
+4. Add a limit on input length and on the number of requests.
+5. Consider weighing genre and mood together before choosing, instead of checking mood first. That way the agent would not overrule a good genre match because of a small mood difference.
+
 ---
 
 ## 9. Personal Reflection  
