@@ -1,0 +1,33 @@
+flowchart TD
+    U["User sentence"] --> STP["sentence_to_profile<br/>(src/agent.py)"]
+    STP <-->|prompt / reply text| G[("Gemini API")]
+
+    subgraph GR["Guardrails in sentence_to_profile"]
+        J{"Extract { ... }<br/>+ json.loads OK?"}
+        V{"genre in Genres?<br/>mood in Moods?<br/>0 ≤ energy ≤ 1?"}
+        J -->|yes| V
+    end
+
+    STP --> J
+    J -->|no| W["logger.warning<br/>return None"]
+    V -->|no| W
+    W --> SK["main.py skips<br/>this profile"]
+
+    V -->|yes| P["Taste profile<br/>genre, mood, energy"]
+    HC["Hard-coded profiles<br/>(src/main.py)"] --> P
+
+    CSV[("data/songs.csv")] -->|load_songs| R
+    P --> R["recommend_songs + score_song<br/>(src/recommender.py)"]
+    R -->|"top 5 (song, score, explanation)"| PB["pick_best + mood_matches<br/>(src/agent.py)"]
+    P --> PB
+
+    R --> O["Printed by src/main.py:<br/>top 5 + Agent pick line"]
+    PB --> O
+    O --> H["Human in the loop:<br/>user judges if the pick fits"]
+
+    subgraph T["pytest (no Gemini calls)"]
+        TA["tests/test_agent.py<br/>mood_matches, pick_best"]
+        TR["tests/test_recommender.py<br/>Recommender class: recommend,<br/>explain_recommendation<br/>(not recommend_songs used by main.py)"]
+    end
+    TA -.checks.-> PB
+    TR -.checks.-> RC["Recommender class<br/>(src/recommender.py)"]
