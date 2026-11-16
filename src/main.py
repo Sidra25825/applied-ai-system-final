@@ -1,3 +1,4 @@
+from src.agent import sentence_to_profile
 """
 Command line runner for the Music Recommender Simulation.
 
@@ -24,6 +25,7 @@ def main() -> None:
         "Sad but Energetic": {"genre": "pop",       "mood": "sad",   "energy": 0.9},
         "Unknown Genre":     {"genre": "classical", "mood": "chill", "energy": 0.2},
         "Middle of Road":    {"genre": "jazz",      "mood": "relaxed", "energy": 0.5},
+        "From Sentence": sentence_to_profile("calm and relaxing music to help me focus while I work on my project."),
     }
 
     for name, user_prefs in profiles.items():
