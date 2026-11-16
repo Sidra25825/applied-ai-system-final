@@ -1,4 +1,4 @@
-from src.agent import sentence_to_profile
+from src.agent import sentence_to_profile, pick_best, mood_matches
 """
 Command line runner for the Music Recommender Simulation.
 
@@ -44,6 +44,10 @@ def main() -> None:
             print(f"{song['title']} - Score: {score:.2f}")
             print(f"Because: {explanation}")
             print()
+
+        # Let the agent pick one song, preferring one whose mood matches the profile.
+        picked_song = pick_best(user_prefs, recommendations)[0]
+        print(f"Agent pick: {picked_song['title']} (mood match: {mood_matches(user_prefs, picked_song)})")
 
 
 if __name__ == "__main__":
