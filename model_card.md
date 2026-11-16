@@ -89,3 +89,79 @@ like real recommendations.
 
 Next, I would add more songs so every genre has several options,
 and use more features like valence and acousticness.
+
+---
+
+## 10. Collaboration with AI: A Suggestion I Changed
+
+While building src/agent.py, the AI assistant suggested cleaning Gemini's reply with this line:
+
+```python
+text = response.text.replace("```json", "").replace("```", "").strip()
+```
+
+It worked in my first runs, so I used it. Later, the program crashed with `json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)`. When I logged the raw reply, I saw that Gemini had wrapped the JSON in a code fence labeled "python" instead of "json". My replace calls only removed "```json", so the word "python" stayed at the start of the text.
+
+I did not keep the replace approach, because it only works for the exact fence labels I thought of. I changed it so the code finds the first "{" with `find` and the last "}" with `rfind`, keeps only the text between them, and then validates the result. Everything outside the braces gets dropped. This is better because it doesn't depend on which label or extra words Gemini adds, and it is still simple: a few lines and no new library.
+
+What I learned: a suggestion can work in my first tests and still be fragile. I should test with messy input and read the raw reply before trusting a cleanup step.
+
+---
+
+## 11. Collaboration with AI: A Suggestion I Accepted
+
+My original recommender had a known bias: a genre match is worth +2.0, but a mood match is only worth +1.0. Because of this, for "Sad but Energetic" the top two songs were pop songs that are not sad, and the only sad song ranked third.
+
+The AI assistant suggested a small check after scoring: look through the top 5 songs and pick the first one whose mood matches the profile, and fall back to the top-scored song if none match. This became `pick_best`, which uses `mood_matches`. I accepted it as suggested and wired it into src/main.py as an extra "Agent pick" line.
+
+I accepted it because it targets the exact bias I had already found. It is also short and easy to read (one loop), and it doesn't change any score, so the original recommender stays intact.
+
+I tested it. For "Sad but Energetic", the pick changed from Gym Hero to Empty Porch Light. Across the 8 profiles, the pick changed in 2 (Sad but Energetic and Unknown Genre), and the picked song's mood matched in all 8.
+
+One downside I noticed: for "Unknown Genre", the agent skipped the only classical song to get a mood match, which is not clearly better.
+
+---
+
+## 12. Limitations and Bias of the Agent
+
+Adding the agent did not remove my recommender's original bias. A genre match is still worth more than a mood match. `pick_best` only partly offsets this, and only inside the top 5 songs. If no song with the right mood makes the top 5, the bias wins.
+
+`pick_best` also puts mood first, which is debatable. For "Unknown Genre", it skipped the only classical song to get a mood match.
+
+The "From Sentence" profile depends on Gemini, which is not fully deterministic. The same sentence gave different top results in two runs.
+
+If the Gemini API call itself fails, for example with no network or a bad key, `sentence_to_profile` does not catch that error, so the program stops. Only bad replies are handled.
+
+The catalog is small (18 songs), and the allowed genre and mood lists only contain words from the catalog.
+
+Finally, my automated tests don't cover the live Gemini call or the guardrail branches inside `sentence_to_profile`.
+
+---
+
+## 13. Could the AI Be Misused, and How I Prevent It
+
+**Protections that are already in the code:**
+
+- Gemini's reply is validated before it reaches the recommender. Genre must be in the allowed list, mood must be in the allowed list, and energy must be a number from 0 to 1.
+- Bad replies are logged as a warning and skipped, so they never get scored.
+- The API key lives in a `.env` file, which is listed in `.gitignore`, and the code never prints it.
+
+**Risks that are NOT handled yet:**
+
+- The user's sentence goes directly into the prompt. Someone could type instructions meant to confuse the model. The validator should limit the damage, because only allowed words can pass, but I did not test this.
+- There is no limit on input length or on the number of requests, so someone could run up API usage.
+- The project has no user accounts and no privacy features.
+
+---
+
+## 14. What Surprised Me While Testing
+
+What surprised me most was the "Unknown Genre" profile: `{"genre": "classical", "mood": "chill", "energy": 0.2}`.
+
+The top-scored song was Moonlit Sonata Sketch, a classical song with the mood "peaceful". The agent skipped it and picked Spacewalk Thoughts, an ambient song with the mood "chill". I expected the classical song to come first, because the user asked for classical and "peaceful" fits the request.
+
+The reason is that `mood_matches` compares the mood words exactly. So "peaceful" and "chill" count as different, even though they are close in meaning.
+
+This means the agent fixed the "Sad but Energetic" case (Gym Hero changed to Empty Porch Light) but arguably made "Unknown Genre" worse.
+
+What I learned: a simple exact-match rule can be too literal, and a change that helps one case can hurt another. So I should test several profiles, not just one.
